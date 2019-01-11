@@ -8,7 +8,7 @@ from Bill_Calc import bill_calculator as calc
 
 
 t0 = time.time()
-TestData = pd.read_csv('C:/Users/user/Documents/GitHub/TDA_Python/data/General_filtered.csv')
+TestData = pd.read_csv('D:/Dropbox/Database/Load/SGSC/ProcessedData/General_filtered.csv')
 print(time.time()-t0) # takes 59 s to load
 
 #SGSC_kWh = pd.concat([pd.to_datetime(TestData['READING_DATETIME']), TestData.iloc[:, 1:-1].astype('float32')],
