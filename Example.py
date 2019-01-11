@@ -8,11 +8,12 @@ from Bill_Calc import bill_calculator as calc
 
 
 t0 = time.time()
-TestData = pd.read_csv('D:/Dropbox/Database/Load/SGSC/ProcessedData/General_filtered.csv')
+TestData = pd.read_csv('C:/Users/user/Documents/GitHub/TDA_Python/data/General_filtered.csv')
 print(time.time()-t0) # takes 59 s to load
 
-
-SGSC_kWh = pd.concat([pd.to_datetime(TestData['READING_DATETIME']), TestData.iloc[:, 1:-1].astype('float32')],
+#SGSC_kWh = pd.concat([pd.to_datetime(TestData['READING_DATETIME']), TestData.iloc[:, 1:-1].astype('float32')],
+#                     axis=1).reset_index(drop=True)
+SGSC_kWh = pd.concat([pd.to_datetime(TestData['READING_DATETIME']), TestData.iloc[:, 1:].astype('float32')],
                      axis=1).reset_index(drop=True)
 SGSC_kWh_sum = pd.concat([SGSC_kWh['READING_DATETIME'], pd.DataFrame(np.nansum(SGSC_kWh.iloc[:, 1:].values, axis=1),
                                                                      columns=['Sum'])], axis=1).reset_index(drop=True)
@@ -62,3 +63,5 @@ load_profile = SGSC_kWh_2013.copy()
 load_profile.info()
 
 Result = calc(load_profile, tariff)
+
+x=1

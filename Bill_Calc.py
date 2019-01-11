@@ -29,16 +29,25 @@ def bill_calculator(load_profile, tariff):
 
     def tou_calc(load_profile, tariff):
         t0 = time.time()
-        Results = pd.DataFrame(load_profile[load_profile > 0].sum(), columns=['Annual_kWh'])
-        Results['Annual_kWh_exp'] = -1 * load_profile[load_profile < 0].sum()
+        f_load_profile = load_profile
+        print('filter {}'.format(time.time() - t0))
+        t0 = time.time()
+        imports = [np.nansum(f_load_profile[col].values[f_load_profile[col].values > 0])
+                   for col in f_load_profile.columns if col != 'READING_DATETIME']
+        Results = pd.DataFrame(index=[col for col in f_load_profile.columns if col != 'READING_DATETIME'],
+                               data=imports, columns=['Annual_kWh'])
+        print('sum {}'.format(time.time() - t0))
+        t0 = time.time()
+        Results['Annual_kWh_exp'] = [-1 * np.nansum(f_load_profile[col].values[f_load_profile[col].values < 0])
+                                     for col in f_load_profile.columns if col != 'READING_DATETIME']
+        print('sum {}'.format(time.time() - t0))
         Results['DailyCharge'] = len(load_profile.index.normalize().unique()) * tariff['Parameters']['Daily']['Value']
-
         load_profile['time_ind'] = 0
-
         all_tou_charge = 0
         load_profile_TI = pd.DataFrame()
         load_profile_TI_Charge = pd.DataFrame()
         ti = 0
+        t0 = time.time()
         for k, v in tariff['Parameters']['Energy'].items():
             this_part = tariff['Parameters']['Energy'][k].copy()
             ti += 1
@@ -88,14 +97,13 @@ def bill_calculator(load_profile, tariff):
 
             load_profile_TI[k] = load_profile.loc[load_profile['time_ind'] == ti, :].sum()
             load_profile_TI_Charge[k] = this_part['Value'] * load_profile_TI[k]
-
+        t1 = time.time()
         Results['EnergyCharge'] = load_profile_TI_Charge.sum(axis=1)
         Results['EnergyCharge_Discounted'] = Results['EnergyCharge'] * (1 - tariff['Discount (%)'] / 100)
-
         Results['Fit_Rebate'] = Results['Annual_kWh_exp'] * tariff['Parameters']['FiT']['Value']
         Results['Bill'] = Results['DailyCharge'] + Results['EnergyCharge'] + Results['Fit_Rebate']
-        print(time.time() - t0)
-
+        print(time.time() - t1)
+        print('loop {}'.format(time.time() - t0))
         return Results
 
     # Checking the type and run the appropriate function
