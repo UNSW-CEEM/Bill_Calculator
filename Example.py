@@ -12,7 +12,7 @@ TestData = pd.read_csv('D:/Dropbox/Database/Load/SGSC/ProcessedData/General_filt
 print(time.time()-t0) # takes 59 s to load
 
 
-SGSC_kWh = pd.concat([pd.to_datetime(TestData['READING_DATETIME']), TestData.iloc[:, 1:-1].astype('float32')],
+SGSC_kWh = pd.concat([pd.to_datetime(TestData['READING_DATETIME']), TestData.iloc[:, 1:].astype('float32')],
                      axis=1).reset_index(drop=True)
 SGSC_kWh_sum = pd.concat([SGSC_kWh['READING_DATETIME'], pd.DataFrame(np.nansum(SGSC_kWh.iloc[:, 1:].values, axis=1),
                                                                      columns=['Sum'])], axis=1).reset_index(drop=True)
@@ -29,7 +29,7 @@ SGSC_kWh_Daily = np.nansum(SGSC_kWh.iloc[:, 1:].values, axis=0)
 # filter to only 2013
 SGSC_kWh_2013 = SGSC_kWh[SGSC_kWh['READING_DATETIME'] > '2013-01-01 00:00:00'].copy().set_index('READING_DATETIME')
 # finding the missing values
-NumNonNan = (len(SGSC_kWh_2013) - SGSC_kWh_2013.count())/len(SGSC_kWh_2013.iloc[:, 1:-1])
+NumNonNan = (len(SGSC_kWh_2013) - SGSC_kWh_2013.count())/len(SGSC_kWh_2013.iloc[:, 1:])
 # filtering those which have more than 5% missing value
 GoodHomes = NumNonNan.index[NumNonNan < 0.05].tolist()
 

@@ -29,13 +29,20 @@ def bill_calculator(load_profile, tariff):
 
     def tou_calc(load_profile, tariff):
         t0 = time.time()
-        Results = pd.DataFrame(load_profile[load_profile > 0].sum(), columns=['Annual_kWh'])
-        Results['Annual_kWh_exp'] = -1 * load_profile[load_profile < 0].sum()
-        Results['DailyCharge'] = len(load_profile.index.normalize().unique()) * tariff['Parameters']['Daily']['Value']
+        # Results = pd.DataFrame(load_profile[load_profile > 0].sum(), columns=['Annual_kWh'])
+        # Results['Annual_kWh_exp'] = -1 * load_profile[load_profile < 0].sum()
+
+        f_load_profile = load_profile
+        imports = [np.nansum(f_load_profile[col].values[f_load_profile[col].values > 0])
+                   for col in f_load_profile.columns if col != 'READING_DATETIME']
+        Results = pd.DataFrame(index=[col for col in f_load_profile.columns if col != 'READING_DATETIME'],
+                               data=imports, columns=['Annual_kWh'])
+        Results['Annual_kWh_exp'] = [-1 * np.nansum(f_load_profile[col].values[f_load_profile[col].values < 0])
+                                     for col in f_load_profile.columns if col != 'READING_DATETIME']
 
         load_profile['time_ind'] = 0
+        Results['DailyCharge'] = len(load_profile.index.normalize().unique()) * tariff['Parameters']['Daily']['Value']
 
-        all_tou_charge = 0
         load_profile_TI = pd.DataFrame()
         load_profile_TI_Charge = pd.DataFrame()
         ti = 0
