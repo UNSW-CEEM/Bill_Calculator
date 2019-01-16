@@ -47,13 +47,19 @@ SGSC_kWh_2013 = SGSC_kWh_2013.iloc[:, SGSC_kWh_2013.columns.isin(GoodHomes)]
 all_tariffs = requests.get('http://api.ceem.org.au/elec-tariffs/retail')
 
 # sample flat rate tariff
-Tariff_name = "Origin Flat Rate NSW (Endeavour area)"
+Tariff_name_R_FR = "Origin Flat Rate NSW (Endeavour area)"
 # sample tou tariff
-Tariff_name = "Energy Locals TOU ACT"
+Tariff_name_R_TOU = "Energy Locals TOU ACT"
 
-all_tariffs_list = all_tariffs.json()
+all_tariffs_Network = requests.get('http://api.ceem.org.au/elec-tariffs/network')
+
+Tariff_name_N_FR = "Essential Energy Flat Rate NSW 2017/18"
+Tariff_name_N_TOU = "Ausgrid TOU NSW 2017/18"
+
+
+all_tariffs_list = all_tariffs_Network.json()
 for i in range(len(all_tariffs_list)):
-    if all_tariffs_list[i]['Name'] == Tariff_name:
+    if all_tariffs_list[i]['Name'] == Tariff_name_N_TOU:
         selected_tariff = all_tariffs_list[i]
 
 
@@ -61,4 +67,4 @@ tariff = selected_tariff
 load_profile = SGSC_kWh_2013.copy()
 load_profile.info()
 
-Result = calc(load_profile, tariff)
+Results = calc(load_profile, tariff)
