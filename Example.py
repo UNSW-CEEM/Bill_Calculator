@@ -51,15 +51,20 @@ Tariff_name_R_FR = "Origin Flat Rate NSW (Endeavour area)"
 # sample tou tariff
 Tariff_name_R_TOU = "Energy Locals TOU ACT"
 
-all_tariffs_Network = requests.get('http://api.ceem.org.au/elec-tariffs/network')
 
 Tariff_name_N_FR = "Essential Energy Flat Rate NSW 2017/18"
 Tariff_name_N_TOU = "Ausgrid TOU NSW 2017/18"
+Tariff_name_N_Dem = "CitiPower Demand Charge VIC 2017/18"
+Tariff_name_N_Block = "Ergon Block (West) QLD 2017/18"
+Tariff_name_N_Block_Q = "AusNet Block_Quarterly VIC 2017/18"
+Tariff_name_N_Demand = "ActewAGL Demand Charge ACT 2017/18"
 
+all_tariffs_Network = requests.get('http://api.ceem.org.au/elec-tariffs/network')
 
 all_tariffs_list = all_tariffs_Network.json()
+
 for i in range(len(all_tariffs_list)):
-    if all_tariffs_list[i]['Name'] == Tariff_name_N_TOU:
+    if all_tariffs_list[i]['Name'] == Tariff_name_N_Demand:
         selected_tariff = all_tariffs_list[i]
 
 
