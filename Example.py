@@ -1,4 +1,3 @@
-
 import pandas as pd
 import time
 import numpy as np
@@ -53,11 +52,6 @@ Allsum=LoadProfiles.sum()
 
 data=[go.Histogram(x=Allsum/365)]
 py.offline.plot({"data":data,"layout":layout})
-
-
-
-
-
 
 
 # testing a tariff
