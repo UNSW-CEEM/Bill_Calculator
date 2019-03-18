@@ -13,6 +13,7 @@ def bill_calculator(load_profile, tariff):
         # make sure it doesn't have missing value or changing the missing values to zero or to average
         # make sure the name is Load
         # time interval is half hour
+
         return load_profile
 
     def fr_calc(load_profile, tariff):
@@ -20,10 +21,13 @@ def bill_calculator(load_profile, tariff):
         f_load_profile = load_profile
         imports = [np.nansum(f_load_profile[col].values[f_load_profile[col].values > 0])
                    for col in f_load_profile.columns if col != 'READING_DATETIME']
+
         Results = pd.DataFrame(index=[col for col in f_load_profile.columns if col != 'READING_DATETIME'],
                                data=imports, columns=['Annual_kWh'])
+
         Results['Annual_kWh_exp'] = [-1 * np.nansum(f_load_profile[col].values[f_load_profile[col].values < 0])
                                      for col in f_load_profile.columns if col != 'READING_DATETIME']
+
         if tariff['ProviderType'] == 'Retailer':
             Results['DailyCharge'] = len(load_profile.index.normalize().unique()) * tariff['Parameters']['Daily']['Value']
             Results['EnergyCharge'] = Results['Annual_kWh'] * tariff['Parameters']['Energy']['Value']
@@ -153,8 +157,10 @@ def bill_calculator(load_profile, tariff):
         f_load_profile = load_profile
         imports = [np.nansum(f_load_profile[col].values[f_load_profile[col].values > 0])
                    for col in f_load_profile.columns if col != 'READING_DATETIME']
+
         Results = pd.DataFrame(index=[col for col in f_load_profile.columns if col != 'READING_DATETIME'],
                                data=imports, columns=['Annual_kWh'])
+
         Results['Annual_kWh_exp'] = [-1 * np.nansum(f_load_profile[col].values[f_load_profile[col].values < 0])
                                      for col in f_load_profile.columns if col != 'READING_DATETIME']
         if tariff['ProviderType'] == 'Retailer':
@@ -373,6 +379,7 @@ def bill_calculator(load_profile, tariff):
         return Results
 
     # Checking the type and run the appropriate function
+    load_profile = pre_processing_load(load_profile)
     if tariff['Type'] == 'Flat_rate':
         Results = fr_calc(load_profile, tariff)
     elif tariff['Type'] == 'TOU':
