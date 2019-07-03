@@ -3,6 +3,9 @@ import pandas as pd
 import time
 import sys
 
+# Inputs: Tariff and Load profile (30 min interval, one year,
+# timestamps are the end of time period: 12:30 is consumption from 12 to 12:30)
+
 def bill_calculator(load_profile, tariff):
 
     def pre_processing_load(load_profile):
@@ -190,34 +193,34 @@ def bill_calculator(load_profile, tariff):
                             time_ind = np.where((load_profile.index.weekday < 5) &
                                                 (load_profile.index.month.isin(this_part['Month'])) &
                                                 (((60 * load_profile.index.hour + load_profile.index.minute)
-                                                  >= (60 * start_hour + start_min)) &
+                                                  > (60 * start_hour + start_min)) &
                                                  ((60 * load_profile.index.hour + load_profile.index.minute)
-                                                  < (60 * end_hour + end_min))), ti,
+                                                  <= (60 * end_hour + end_min))), ti,
                                                 time_ind)
                         else:
                             time_ind = np.where((load_profile.index.weekday < 5) &
                                                                 (load_profile.index.month.isin(this_part['Month'])) &
                                                                 (((60 * load_profile.index.hour + load_profile.index.minute)
-                                                                  >= (60 * start_hour + start_min)) |
+                                                                  > (60 * start_hour + start_min)) |
                                                                  ((60 * load_profile.index.hour + load_profile.index.minute)
-                                                                  < (60 * end_hour + end_min))), ti,
+                                                                  <= (60 * end_hour + end_min))), ti,
                                                                 time_ind)
                     if this_part['Weekend']:
                         if start_hour <= end_hour:
                             time_ind = np.where((load_profile.index.weekday >= 5) &
                                                                 (load_profile.index.month.isin(this_part['Month'])) &
                                                                 (((60 * load_profile.index.hour + load_profile.index.minute)
-                                                                  >= (60 * start_hour + start_min)) &
+                                                                  > (60 * start_hour + start_min)) &
                                                                  ((60 * load_profile.index.hour + load_profile.index.minute)
-                                                                  < (60 * end_hour + end_min))), ti,
+                                                                  <= (60 * end_hour + end_min))), ti,
                                                                 time_ind)
                         else:
                             time_ind = np.where((load_profile.index.weekday >= 5) &
                                                                 (load_profile.index.month.isin(this_part['Month'])) &
                                                                 (((60 * load_profile.index.hour + load_profile.index.minute)
-                                                                  >= (60 * start_hour + start_min)) |
+                                                                  > (60 * start_hour + start_min)) |
                                                                  ((60 * load_profile.index.hour + load_profile.index.minute)
-                                                                  < (60 * end_hour + end_min))), ti,
+                                                                  <= (60 * end_hour + end_min))), ti,
                                                                 time_ind)
                 load_profile_TI[k] = load_profile.loc[time_ind == ti, :].sum()
                 load_profile_TI_Charge[k] = this_part['Value'] * load_profile_TI[k]
@@ -325,34 +328,34 @@ def bill_calculator(load_profile, tariff):
                             time_ind = np.where((load_profile.index.weekday < 5) &
                                                 (load_profile.index.month.isin(DemCharCompVal['Month'])) &
                                                 (((60 * load_profile.index.hour + load_profile.index.minute)
-                                                  >= (60 * start_hour + start_min)) &
+                                                  > (60 * start_hour + start_min)) &
                                                  ((60 * load_profile.index.hour + load_profile.index.minute)
-                                                  < (60 * end_hour + end_min))), ti,
+                                                  <= (60 * end_hour + end_min))), ti,
                                                 time_ind)
                         else:
                             time_ind = np.where((load_profile.index.weekday < 5) &
                                                 (load_profile.index.month.isin(DemCharCompVal['Month'])) &
                                                 (((60 * load_profile.index.hour + load_profile.index.minute)
-                                                  >= (60 * start_hour + start_min)) |
+                                                  > (60 * start_hour + start_min)) |
                                                  ((60 * load_profile.index.hour + load_profile.index.minute)
-                                                  < (60 * end_hour + end_min))), ti,
+                                                  <= (60 * end_hour + end_min))), ti,
                                                 time_ind)
                     if DemCharCompVal['Weekend']:
                         if start_hour <= end_hour:
                             time_ind = np.where((load_profile.index.weekday >= 5) &
                                                 (load_profile.index.month.isin(DemCharCompVal['Month'])) &
                                                 (((60 * load_profile.index.hour + load_profile.index.minute)
-                                                  >= (60 * start_hour + start_min)) &
+                                                  > (60 * start_hour + start_min)) &
                                                  ((60 * load_profile.index.hour + load_profile.index.minute)
-                                                  < (60 * end_hour + end_min))), ti,
+                                                  <= (60 * end_hour + end_min))), ti,
                                                 time_ind)
                         else:
                             time_ind = np.where((load_profile.index.weekday >= 5) &
                                                 (load_profile.index.month.isin(DemCharCompVal['Month'])) &
                                                 (((60 * load_profile.index.hour + load_profile.index.minute)
-                                                  >= (60 * start_hour + start_min)) |
+                                                  > (60 * start_hour + start_min)) |
                                                  ((60 * load_profile.index.hour + load_profile.index.minute)
-                                                  < (60 * end_hour + end_min))), ti,
+                                                  <= (60 * end_hour + end_min))), ti,
                                                 time_ind)
 
                 load_profile_r = load_profile_r.loc[time_ind == ti, :]
@@ -422,3 +425,4 @@ def bill_calculator(load_profile, tariff):
     else:
         Results = 'Error'
     return Results
+
