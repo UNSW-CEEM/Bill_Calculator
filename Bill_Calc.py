@@ -3,7 +3,6 @@ import pandas as pd
 import time
 import sys
 
-# THIS IS A COPY OF THE SAME FUNCTION IN BILL_CALCULATOR REPOSITORY (ON 1 AUG 2019)
 # https://github.com/UNSW-CEEM/Bill_Calculator
 #
 # Inputs: Tariff and Load profile (30 min interval, one year,
