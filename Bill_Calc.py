@@ -24,31 +24,39 @@ def bill_calculator(load_profile, tariff, network_load=None, FiT=True):
     def fr_calc(load_profile, tariff):
 
         f_load_profile = load_profile
+        # Setting the export load to zero (consider only import for now)
         imports = [np.nansum(f_load_profile[col].values[f_load_profile[col].values > 0])
                    for col in f_load_profile.columns if col != 'Datetime']
-
+        # creating the results dataframe which has all the results
         Results = pd.DataFrame(index=[col for col in f_load_profile.columns if col != 'Datetime'],
                                data=imports, columns=['Annual_kWh'])
+        # if has feed in tariff calculate the export as well
         if FiT:
             Results['Annual_kWh_exp'] = [-1 * np.nansum(f_load_profile[col].values[f_load_profile[col].values < 0])
                                      for col in f_load_profile.columns if col != 'Datetime']
-
+        # if retail tariff calculate the daily and energy from the parameters
         if tariff['ProviderType'] == 'Retailer':
+            # daily charge using the number of unique days in the load profile
             Results['DailyCharge'] = (len(load_profile.index.normalize().unique())-1) * tariff['Parameters']['Daily']['Value']
+            # calculate the energy charge by multiplying the energy by usage
             Results['EnergyCharge'] = Results['Annual_kWh'] * tariff['Parameters']['Energy']['Value']
+            #  if there is discount
             Results['EnergyCharge_Discounted'] = Results['EnergyCharge'] * (1 - tariff['Discount (%)'] / 100)
+            # if there is feed in tariff add a new column to df with the rebate
             if FiT:
                 Results['Fit_Rebate'] = Results['Annual_kWh_exp'] * tariff['Parameters']['FiT']['Value']
             else:
                 Results['Fit_Rebate'] = 0
+            #     final bill is the sum of daily charge, energy charge and negative rebate of the feed in tariff
             Results['Bill'] = Results['DailyCharge'] + Results['EnergyCharge'] - Results['Fit_Rebate']
         else:
+            # if it's network tariff do the same for each component separately
             for TarComp, TarCompVal in tariff['Parameters'].items():
                 Results[TarComp + '_DailyCharge'] = (len(load_profile.index.normalize().unique())-1) * TarCompVal['Daily']['Value']
                 Results[TarComp + '_EnergyCharge'] = Results['Annual_kWh'] * TarCompVal['Energy']['Value']
             Results['Bill'] = Results['NUOS_DailyCharge'] + Results['NUOS_EnergyCharge']
         return Results
-
+    # block annual tariff where you have different charges for different levels of usage
     def block_annual(load_profile, tariff):
         # The high bounds is for annual
         f_load_profile = load_profile
@@ -59,19 +67,19 @@ def bill_calculator(load_profile, tariff, network_load=None, FiT=True):
         if FiT:
             Results['Annual_kWh_exp'] = [-1 * np.nansum(f_load_profile[col].values[f_load_profile[col].values < 0])
                                      for col in f_load_profile.columns if col != 'Datetime']
+        # if it's retailer change the layout so it's similar to network tariff component
         if tariff['ProviderType'] == 'Retailer':
             tariff_temp = tariff.copy()
             del tariff_temp['Parameters']
             tariff_temp['Parameters'] = {'Retailer': tariff['Parameters']}
             tariff = tariff_temp.copy()
 
-
         for TarComp, TarCompVal in tariff['Parameters'].items():
             Results[TarComp + '_DailyCharge'] = (len(load_profile.index.normalize().unique())-1) * TarCompVal['Daily'][
                 'Value']
             BlockUse = Results[['Annual_kWh']].copy()
             BlockUseCharge = Results[['Annual_kWh']].copy()
-
+            # separating the blocks of usage
             lim = 0
             for k, v in TarCompVal['Energy'].items():
                 BlockUse[k] = BlockUse['Annual_kWh']
@@ -226,6 +234,7 @@ def bill_calculator(load_profile, tariff, network_load=None, FiT=True):
 
 
     def tou_calc(load_profile, tariff):
+        # different charge in different times of day, month, weekday weekend,
         t0 = time.time()
         f_load_profile = load_profile
         imports = [np.nansum(f_load_profile[col].values[f_load_profile[col].values > 0])
@@ -260,6 +269,7 @@ def bill_calculator(load_profile, tariff, network_load=None, FiT=True):
                     if end_hour == 0:
                         end_hour = 24
                     end_min = int(v2[1][3:5])
+                    # todo: adding holiday workday
                     if this_part['Weekday']:
                         if start_hour <= end_hour:
                             time_ind = np.where((load_profile.index.weekday < 5) &
@@ -315,17 +325,16 @@ def bill_calculator(load_profile, tariff, network_load=None, FiT=True):
         return Results
 
     def demand_charge(load_profile, tariff):
-
+        # charge per kW based on the maximum demand of the month
         f_load_profile = load_profile.copy()
         imports = [np.nansum(f_load_profile[col].values[f_load_profile[col].values > 0])
                    for col in f_load_profile.columns if col != 'Datetime']
         Results = pd.DataFrame(index=[col for col in f_load_profile.columns if col != 'Datetime'],
                                data=imports, columns=['Annual_kWh'])
-
         if FiT:
             Results['Annual_kWh_exp'] = [-1 * np.nansum(f_load_profile[col].values[f_load_profile[col].values < 0])
                                      for col in f_load_profile.columns if col != 'Datetime']
-
+        # if this is a retail tariff create a new item in the parameters and make it retailer to make it similar to network tariffs
         if tariff['ProviderType'] == 'Retailer':
             tariff_temp = tariff.copy()
             del tariff_temp['Parameters']
@@ -338,14 +347,10 @@ def bill_calculator(load_profile, tariff, network_load=None, FiT=True):
                 Results[TarComp + '_EnergyCharge'] = Results['Annual_kWh'] * TarCompVal['Energy']['Value']
             else:
                 load_profile_imp = load_profile.clip_lower(0)
-                load_profile_Q1 = load_profile_imp.loc[load_profile_imp.index.month.isin([1, 2, 3]), :]
-                load_profile_Q2 = load_profile_imp.loc[load_profile_imp.index.month.isin([4, 5, 6]), :]
-                load_profile_Q3 = load_profile_imp.loc[load_profile_imp.index.month.isin([7, 8, 9]), :]
-                load_profile_Q4 = load_profile_imp.loc[load_profile_imp.index.month.isin([10, 11, 12]), :]
-                Results['Q1_kWh'] = load_profile_Q1.sum()
-                Results['Q2_kWh'] = load_profile_Q2.sum()
-                Results['Q3_kWh'] = load_profile_Q3.sum()
-                Results['Q4_kWh'] = load_profile_Q4.sum()
+                Results['Q1_kWh'] = load_profile_imp.loc[load_profile_imp.index.month.isin([1, 2, 3]), :].sum()
+                Results['Q2_kWh'] = load_profile_imp.loc[load_profile_imp.index.month.isin([4, 5, 6]), :].sum()
+                Results['Q3_kWh'] = load_profile_imp.loc[load_profile_imp.index.month.isin([7, 8, 9]), :].sum()
+                Results['Q4_kWh'] = load_profile_imp.loc[load_profile_imp.index.month.isin([10, 11, 12]), :].sum()
                 for i in range(1, 5):
                     BlockUse = Results[['Q{}_kWh'.format(i)]].copy()
                     BlockUseCharge = BlockUse.copy()
@@ -435,7 +440,7 @@ def bill_calculator(load_profile, tariff, network_load=None, FiT=True):
                                          value_vars=[x for x in load_profile_f.columns if x != 'Datetime'])
                 load_profile_f = load_profile_f.rename(columns={'variable': 'HomeID', 'value': 'kWh'})
                 load_profile_f['Month'] = load_profile_f['Datetime'].dt.month
-
+                # if capacity charge is applied meaning the charge only applies when you exceed the capacity for  a certain number of times
                 if 'Capacity' in DemCharCompVal:
                     # please note the capacity charge only works with user's demand peak (not coincident peak)
                     capacity = DemCharCompVal['Capacity']['Value']
