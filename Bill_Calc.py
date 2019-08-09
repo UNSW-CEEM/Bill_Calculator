@@ -50,7 +50,7 @@ def bill_calculator(load_profile, tariff, network_load=None, FiT=True):
         return Results
 
     def block_annual(load_profile, tariff):
-
+        # The high bounds is for annual
         f_load_profile = load_profile
         imports = [np.nansum(f_load_profile[col].values[f_load_profile[col].values > 0])
                    for col in f_load_profile.columns if col != 'Datetime']
@@ -102,7 +102,7 @@ def bill_calculator(load_profile, tariff, network_load=None, FiT=True):
         return Results
 
     def block_quarterly(load_profile, tariff):
-
+        # The high bounds is for each quarter (so if you have annual bound you should divide it by four!)
         load_profile_imp = load_profile.clip_lower(0)
         load_profile_Q1 = load_profile_imp.loc[load_profile_imp.index.month.isin([1, 2, 3]), :]
         load_profile_Q2 = load_profile_imp.loc[load_profile_imp.index.month.isin([4, 5, 6]), :]
@@ -161,6 +161,70 @@ def bill_calculator(load_profile, tariff, network_load=None, FiT=True):
             Results['Bill'] = Results['NUOS_DailyCharge'] + Results['NUOS_EnergyCharge_Discounted'] - Results[
                 'NUOS_Fit_Rebate']
         return Results
+
+    def block_monthly(load_profile, tariff):
+        # The high bounds is for each month (so if you have annual bound you should divide it by 12!)
+        load_profile_imp = load_profile.clip_lower(0)
+        load_profile_M={}
+        for m in range(1, 13):
+            load_profile_M['M_'+str(m)] = load_profile_imp.loc[load_profile_imp.index.month == m, :]
+
+
+        f_load_profile = load_profile
+        imports = [np.nansum(f_load_profile[col].values[f_load_profile[col].values > 0])
+                   for col in f_load_profile.columns if col != 'Datetime']
+        Results = pd.DataFrame(index=[col for col in f_load_profile.columns if col != 'Datetime'],
+                               data=imports, columns=['Annual_kWh'])
+        for m in range(1, 13):
+            Results['M'+str(m)+'_kWh'] = load_profile_M['M_'+str(m)].sum()
+
+        if FiT:
+            Results['Annual_kWh_exp'] = [-1 * np.nansum(f_load_profile[col].values[f_load_profile[col].values < 0])
+                                         for col in f_load_profile.columns if col != 'Datetime']
+        if tariff['ProviderType'] == 'Retailer':
+            tariff_temp = tariff.copy()
+            del tariff_temp['Parameters']
+            tariff_temp['Parameters'] = {'Retailer': tariff['Parameters']}
+            tariff = tariff_temp.copy()
+        for TarComp, TarCompVal in tariff['Parameters'].items():
+            Results[TarComp + '_DailyCharge'] = (len(load_profile.index.normalize().unique()) - 1) * \
+                                                TarCompVal['Daily'][
+                                                    'Value']
+            for m in range(1, 13):
+                BlockUse = Results[['M{}_kWh'.format(m)]].copy()
+                BlockUseCharge = BlockUse.copy()
+                lim = 0
+                for k, v in TarCompVal['Energy'].items():
+                    BlockUse[k] = BlockUse['M{}_kWh'.format(m)]
+                    BlockUse[k][BlockUse[k] > v['HighBound']] = v['HighBound']
+                    BlockUse[k] = BlockUse[k] - lim
+                    BlockUse[k][BlockUse[k] < 0] = 0
+                    lim = v['HighBound']
+                    BlockUseCharge[k] = BlockUse[k] * v['Value']
+                del BlockUse['M{}_kWh'.format(m)]
+                del BlockUseCharge['M{}_kWh'.format(m)]
+
+                Results[TarComp + '_EnergyCharge_M{}'.format(m)] = BlockUseCharge.sum(axis=1)
+
+            Results[TarComp + '_EnergyCharge'] = Results[[TarComp + '_EnergyCharge_M' + str(m) for m in range(1, 13)]].sum(axis=1)
+            if 'Discount (%)' in tariff:
+                Results[TarComp + '_EnergyCharge_Discounted'] = Results[TarComp + '_EnergyCharge'] * (
+                        1 - tariff['Discount (%)'] / 100)
+            else:
+                Results[TarComp + '_EnergyCharge_Discounted'] = Results[TarComp + '_EnergyCharge']
+            if 'FiT' in TarCompVal:
+                Results[TarComp + '_Fit_Rebate'] = Results['Annual_kWh_exp'] * TarCompVal['FiT']['Value']
+            else:
+                Results[TarComp + '_Fit_Rebate'] = 0
+        if tariff['ProviderType'] == 'Retailer':
+            Results['Bill'] = Results['Retailer_DailyCharge'] + Results['Retailer_EnergyCharge_Discounted'] - \
+                              Results['Retailer_Fit_Rebate']
+        else:
+            Results['Bill'] = Results['NUOS_DailyCharge'] + Results['NUOS_EnergyCharge_Discounted'] - Results[
+                'NUOS_Fit_Rebate']
+        return Results
+
+
     def tou_calc(load_profile, tariff):
         t0 = time.time()
         f_load_profile = load_profile
@@ -405,9 +469,7 @@ def bill_calculator(load_profile, tariff, network_load=None, FiT=True):
                         lambda x: x.sort_values('kWh', ascending=False)[:NumofPeaks]).reset_index(drop=True).groupby(
                         ['HomeID']).mean()
 
-                # Results[TarComp + '_Demand'] = Results[TarComp + '_Demand'] + average_peaks['kWh']
                 Results[TarComp + '_DemandCharge'] = Results[TarComp + '_DemandCharge'] + average_peaks['kWh'] * DemCharCompVal['Value'] * len(DemCharCompVal['Month'])
-                # AllAveragePeaks = AllAveragePeaks.append(average_peaks)
 
         if tariff['ProviderType'] == 'Retailer':
 
@@ -429,6 +491,8 @@ def bill_calculator(load_profile, tariff, network_load=None, FiT=True):
         Results = block_annual(load_profile, tariff)
     elif tariff['Type'] == 'Block_Quarterly':
         Results = block_quarterly(load_profile, tariff)
+    elif tariff['Type'] == 'Block_Monthly':
+        Results = block_monthly(load_profile, tariff)
     elif tariff['Type'] == 'Demand Charge':
         Results = demand_charge(load_profile, tariff)
     else:
