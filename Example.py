@@ -31,6 +31,8 @@ LoadProfiles['Datetime'] = pd.to_datetime(LoadProfiles['Datetime'], format='%d/%
 
 NetworkLoad = pd.read_csv('NetworkLoad.csv')
 NetworkLoad['Datetime'] = pd.to_datetime(NetworkLoad['Datetime'], format='%d/%m/%Y %H:%M')
+NetworkLoad.set_index('Datetime', inplace=True)
+NetworkLoad.columns = ['NetworkLoad']
 
 SolarProf = pd.read_csv('100SolarProf.csv')
 SolarProf['Datetime'] = pd.to_datetime(SolarProf['Datetime'], format='%d/%m/%Y %H:%M')
@@ -107,7 +109,7 @@ Tariff_name_N_TOU = "Ausgrid TOU NSW 2017/18"
 Tariff_name_N_Dem = "CitiPower Demand Charge VIC 2017/18"
 Tariff_name_N_Block = "Ergon Block (West) QLD 2017/18"
 Tariff_name_N_Block_Q = "AusNet Block_Quarterly VIC 2017/18"
-Tariff_name_N_Demand = "ActewAGL Demand Charge ACT 2017/18"
+Tariff_name_N_Demand = "Powercor Demand Charge VIC 2019 (Residential)"
 
 all_tariffs_Network = requests.get('http://api.ceem.org.au/elec-tariffs/network')
 
@@ -118,6 +120,10 @@ for i in range(len(all_tariffs_list)):
         selected_tariff = all_tariffs_list[i]
 
 tariff = selected_tariff
+
+
+
+
 load_profile = SGSC_kWh_2013.copy()
 load_profile.info()
 
@@ -136,5 +142,58 @@ LoadkWh = LoadkWh[LoadkWh['READING_DATETIME'] <= '2013-07-01 00:00:00'].copy()
 # Missing data check (removing any home with more than 5% missing data)
 LoadkWh = LoadkWh.loc[:, LoadkWh.isnull().sum() / LoadkWh.shape[0] < 0.05].copy()
 LoadkWh = LoadkWh.fillna(0)  # Filling the missing values with zero (filling with other methods is dangerous for tariff analysis..)
-
 load_profile_b = LoadkWh.copy().set_index('READING_DATETIME')
+
+#
+
+# testing
+load_profile = LoadProfiles.copy().set_index('Datetime')  # small load
+load_profile = load_profile_b.copy()  # big load
+load_profile.reset_index(inplace=True)
+load_profile.rename(columns={'READING_DATETIME': 'Datetime'},inplace=True)
+load_profile = load_profile.set_index('Datetime')
+
+# changing the energy to FlatRate
+for k, v in tariff['Parameters'].items():
+    v['FlatRate'] = v['Energy']
+    del (v['Energy'])
+
+for k, v in tariff['Parameters'].items():
+    for k2, v2 in v['Demand'].items():
+        v2['Weekday'] = v2['Workday']
+        v2['Weekend'] = v2['Weekend and Public Holidays']
+for k, v in tariff['Parameters'].items():
+    v['Daily'] = v['Yearly'].copy()
+    v['Daily']['Value'] = v['Yearly']['Value']/365
+
+
+# changing the energy to Blockannual
+for k, v in tariff['Parameters'].items():
+    v['BlockAnnual'] = v['Energy']
+    del (v['Energy'])
+
+#  to quarterly
+for k, v in tariff['Parameters'].items():
+    v['BlockQuarterly'] = v['Energy']
+    del (v['Energy'])
+
+#  to monthly
+
+for k, v in tariff['Parameters'].items():
+    v['BlockMonthly'] = v['Energy']
+    del (v['Energy'])
+
+#  to TOU
+for k, v in tariff['Parameters'].items():
+    v['TOU'] = v['Energy']
+    del (v['Energy'])
+
+
+# Changes:
+# Energy to FlatRate or BlockAnnual or BlockQuarterly or BlockMonthly or TOU
+# working holiday etc to weekday weekend
+# network load columns should be called 'Datetime', 'NetworkLoad'
+# network_load.columns = ['Datetime', 'NetworkLoad'] and should match the dates
+
+
+results2= bill_calculator(load_profile, tariff, network_load=None, fit=True)
