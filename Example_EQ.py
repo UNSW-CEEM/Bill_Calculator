@@ -1,15 +1,15 @@
 import pandas as pd
 import json
 from Bill_Calc import bill_calculator as calc
-
+import copy
 
 import warnings
 warnings.filterwarnings("ignore")
 
 
 # Load profile
-LoadProfiles = pd.read_csv('TestLoadProfile.csv')
-LoadProfiles['Datetime']=pd.to_datetime(LoadProfiles['Datetime'],format='%d/%m/%Y %H:%M')
+LoadProfiles = pd.read_csv('SampleLoadProfile.csv')
+LoadProfiles['Datetime'] = pd.to_datetime(LoadProfiles['Datetime'],format='%d/%m/%Y %H:%M')
 load_profile = LoadProfiles.copy().set_index('Datetime')
 
 # Load tariff
@@ -29,8 +29,13 @@ print(tariff)
 # changing the parameters as required:
 tariff['Parameters']['NUOS']['Energy']['Block1']['Value'] = 1.5
 tariff['Parameters']['NUOS']['Energy']['Block2']['Value'] = 2.5
+tariff['Parameters']['NUOS']['Energy']['Block3']['Value'] = 3.5
 
-Results = calc(load_profile, tariff)
+Results_old = bill_calculator(load_profile, tariff)
+
+tariff['Parameters']['NUOS']['BlockAnnual'] = tariff['Parameters']['NUOS']['Energy']
+Results_new = bill_calculator_new(load_profile, tariff)
+
 
 ## Example of Residential Flat
 Tariff_name = "Residential Flat"
@@ -45,8 +50,9 @@ print(tariff)
 tariff['Parameters']['NUOS']['Energy']['Value'] = 1.5
 tariff['Parameters']['NUOS']['Daily']['Value'] = 1
 
-Results = calc(load_profile, tariff)
-
+Results_old = bill_calculator(load_profile, tariff)
+tariff['Parameters']['NUOS']['FlatRate'] = tariff['Parameters']['NUOS']['Energy']
+Results_new = bill_calculator_new(load_profile, tariff)
 
 # Example Residential Basic
 Tariff_name = "Residential Basic"
@@ -61,7 +67,9 @@ print(tariff)
 tariff['Parameters']['NUOS']['Energy']['Block1']['Value'] = 1.5
 tariff['Parameters']['NUOS']['Energy']['Block2']['Value'] = 1
 
-Results = calc(load_profile, tariff)
+Results_old = bill_calculator(load_profile, tariff)
+tariff['Parameters']['NUOS']['BlockAnnual'] = tariff['Parameters']['NUOS']['Energy']
+Results_new = bill_calculator_new(load_profile, tariff)
 
 # Example Residential Demand
 Tariff_name = "Residential Demand"
@@ -78,7 +86,12 @@ tariff['Parameters']['NUOS']['Demand']['Evening']['Value'] = 10
 tariff['Parameters']['NUOS']['Energy']['Value'] = 2
 tariff['Parameters']['NUOS']['Daily']['Value'] = 1
 
-Results = calc(load_profile, tariff)
+Results_old = bill_calculator(load_profile, tariff)
+tariff['Parameters']['NUOS']['FlatRate'] = tariff['Parameters']['NUOS']['Energy']
+Results_new = bill_calculator_new(load_profile, tariff)
+
+with open('EQTariffTemplates.json') as f:
+    all_tariffs_list2 = json.load(f)
 
 # Example Residential Capacity
 Tariff_name = "Residential Capacity"
@@ -102,8 +115,9 @@ tariff['Parameters']['NUOS']['Energy']['Value'] = 2
 tariff['Parameters']['NUOS']['Daily']['Value'] = 1
 
 
-Results = calc(load_profile, tariff)
-
+Results_old = bill_calculator(load_profile, tariff)
+tariff['Parameters']['NUOS']['FlatRate'] = tariff['Parameters']['NUOS']['Energy']
+Results_new = bill_calculator_new(load_profile, tariff)
 
 #  Testing annual and block
 LoadProfiles = pd.read_csv('SampleLoadProfile.csv')
@@ -151,6 +165,8 @@ tariff['Parameters']['NUOS']['Daily']['Value'] = 3
 tariff['Type']='Block_Annual'
 Results = calc(load_profile, tariff)
 
+with open('EQTariffTemplates.json') as f:
+    all_tariffs_list2 = json.load(f)
 
 ## Monthly Block Tariff
 Tariff_name = "Inclining Block Tariff"
@@ -167,5 +183,7 @@ tariff['Parameters']['NUOS']['Energy']['Block2']['Value'] = 2.5
 tariff['Parameters']['NUOS']['Energy']['Block3']['Value'] = 3.5
 
 tariff['Parameters']['NUOS']['Daily']['Value'] = 3
-tariff['Type']='Block_Monthly'
-Results = calc(load_profile, tariff)
+tariff['Type'] = 'Block_Monthly'
+Results_old = bill_calculator(load_profile, tariff)
+tariff['Parameters']['NUOS']['BlockMonthly'] = tariff['Parameters']['NUOS']['Energy']
+Results_new = bill_calculator_new(load_profile, tariff)
