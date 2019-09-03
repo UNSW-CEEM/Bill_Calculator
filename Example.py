@@ -6,6 +6,7 @@ import requests
 from Bill_Calc import bill_calculator as calc
 import plotly as py
 import plotly.graph_objs as go
+import json
 
 # Creating sample load
 t0 = time.time()
@@ -105,15 +106,22 @@ GoodHomes = NumNonNan.index[NumNonNan < 0.05].tolist()
 SGSC_kWh_2013 = SGSC_kWh_2013.iloc[:, SGSC_kWh_2013.columns.isin(GoodHomes)]
 
 Tariff_name_N_FR = "Essential Energy Flat Rate NSW 2017/18"
+Tariff_name_N_FR = "ActewAGL Flat Rate ACT 2017/18"
 Tariff_name_N_TOU = "Ausgrid TOU NSW 2017/18"
+Tariff_name_N_TOU = "TasNetworks TOU TAS 2017/18"
+
 Tariff_name_N_Dem = "CitiPower Demand Charge VIC 2017/18"
 Tariff_name_N_Block = "Ergon Block (West) QLD 2017/18"
 Tariff_name_N_Block_Q = "AusNet Block_Quarterly VIC 2017/18"
 Tariff_name_N_Demand = "Powercor Demand Charge VIC 2019 (Residential)"
-
+Tariff_name_N_Demand = "Jemena Demand Charge VIC 2017/18"
 all_tariffs_Network = requests.get('http://api.ceem.org.au/elec-tariffs/network')
-
 all_tariffs_list = all_tariffs_Network.json()
+
+with open('AllTariffs_Network.json') as f:
+    all_tariffs_Network = json.load(f)
+
+all_tariffs_list = all_tariffs_Network.copy()
 all_tariffs_list = all_tariffs_list[0]['Tariffs']
 for i in range(len(all_tariffs_list)):
     if all_tariffs_list[i]['Name'] == Tariff_name_N_Demand:
@@ -121,6 +129,7 @@ for i in range(len(all_tariffs_list)):
 
 tariff = selected_tariff
 
+ResNew = bill_calculator_new(LoadProfiles.set_index('Datetime'), tariff, network_load=None, fit=True)
 
 
 
@@ -197,3 +206,6 @@ for k, v in tariff['Parameters'].items():
 
 
 results2= bill_calculator(load_profile, tariff, network_load=None, fit=True)
+
+
+
