@@ -13,21 +13,20 @@ NetworkLoad.set_index('Datetime', inplace=True)
 NetworkLoad.columns = ['NetworkLoad']
 
 
-# Load tariff
+# Load tariffs Network
 with open('AllTariffs_Network.json') as f:
     all_tariffs_list = json.load(f)
 all_tariffs_list = all_tariffs_list[0]['Tariffs']
 
 AllRes = {}
 k = 1
-
 for tariff in all_tariffs_list:
     print(tariff)
     k = k + 1
     AllRes[tariff['Tariff ID']] = calc(LoadProfiles.set_index('Datetime'), tariff)
 
 # Load tariff retails
-with open('AllTariffs_Retail.json') as f:
+with open('AllTariffs_Retail_TDA.json') as f:
     all_tariffs_list = json.load(f)
 all_tariffs_list = all_tariffs_list[0]['Tariffs']
 
