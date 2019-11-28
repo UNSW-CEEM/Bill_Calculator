@@ -124,7 +124,7 @@ with open('AllTariffs_Network.json') as f:
 all_tariffs_list = all_tariffs_Network.copy()
 all_tariffs_list = all_tariffs_list[0]['Tariffs']
 for i in range(len(all_tariffs_list)):
-    if all_tariffs_list[i]['Name'] == Tariff_name_N_Demand:
+    if all_tariffs_list[i]['Name'] == Tariff_name_N_TOU:
         selected_tariff = all_tariffs_list[i]
 
 tariff = selected_tariff
