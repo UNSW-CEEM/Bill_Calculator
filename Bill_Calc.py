@@ -4,7 +4,8 @@ import time
 
 
 # https://github.com/UNSW-CEEM/Bill_Calculator
-#
+# Prepared by Navid Haghdadi (n.haghdadi@unsw.edu.au)
+# You can learn how to use this function by running the Tariff Calculation Example notebook in this repository
 # Inputs: Tariff and Load profile (30 min interval, one year,
 # timestamps are the end of time period: 12:30 is consumption from 12 to 12:30)
 # If tariff rates include gst the result will be gst inclusive
